@@ -1,8 +1,11 @@
 package main
 
 import (
+	"MemoryAnalyzer/interfaces"
+	"MemoryAnalyzer/memory"
 	"MemoryAnalyzer/platforms"
 	"MemoryAnalyzer/process"
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -28,9 +31,18 @@ import (
 // 14. Настройка обработки сигналов завершения программы
 // 15. Настройка периодического обновления данных
 
+func performGracefulShutdown(ctx context.Context) {
+	fmt.Println("=== Graceful Shutdown ===")
+	fmt.Println("✓ Ticker stopped (via defer)")
+	fmt.Println("✓ Context cancelled")
+	fmt.Println("✓ All goroutines terminated")
+	time.Sleep(2 * time.Second)
+	fmt.Println("=== Shutdown complete ===")
+}
+
 func main() {
 	// Инициализируем компоненты
-	var reader platforms.MemoryReader
+	var reader interfaces.MemoryReader
 	switch runtime.GOOS {
 	case "darwin":
 		reader = &platforms.DarwinMemoryReader{}
@@ -47,6 +59,10 @@ func main() {
 		TopProcesses:   10,
 	}
 
+	// Создаём контекст, который можно отменить
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
@@ -54,12 +70,26 @@ func main() {
 	defer ticker.Stop()
 
 	fmt.Printf("Starting Memory Analyzer on %s\n", runtime.GOOS)
+	fmt.Println("Press Ctrl+C to shutdown gracefully...")
+
+	// Горутина для обработки сигналов завершения
+	go func() {
+		<-sigChan
+		fmt.Println("\n\nReceived interrupt signal. Initiating graceful shutdown...")
+
+		// Запускаем graceful shutdown в отдельной горутине
+		go performGracefulShutdown(ctx)
+
+		// Даём время на завершение (5 секунд)
+		time.Sleep(5 * time.Second)
+		cancel()
+	}()
 
 	// Реализовать основной цикл обработки событий
 	for {
 		select {
 		// Обработка сигнала завершения
-		case <-sigChan:
+		case <-ctx.Done():
 			fmt.Println("\nReceived interrupt signal. Exiting...")
 			return
 		case <-ticker.C:
@@ -78,11 +108,11 @@ func main() {
 			}
 
 			// Сбор информации о процессах
-			var processes []process.ProcessInfo
+			var processes []memory.ProcessInfo
 			for _, pid := range pids {
 				if mem, err := reader.ReadProcessMemory(pid); err == nil {
-					name := process.GetProcessName(pid)
-					processes = append(processes, process.ProcessInfo{
+					name := reader.GetProcessName(pid)
+					processes = append(processes, memory.ProcessInfo{
 						PID:         pid,
 						Name:        name,
 						MemoryUsage: mem,

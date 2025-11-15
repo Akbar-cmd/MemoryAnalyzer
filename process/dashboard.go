@@ -1,12 +1,13 @@
 package process
 
 import (
+	"MemoryAnalyzer/memory"
 	"fmt"
 	"sort"
 	"time"
 )
 
-func DisplayDashboard(stats SystemMemoryInfo, processes []ProcessInfo, config DisplayConfig) {
+func DisplayDashboard(stats memory.SystemMemoryInfo, processes []memory.ProcessInfo, config DisplayConfig) {
 	// Очистка экрана и перемещение курсора
 	fmt.Print("\033[H\033[2J")
 	fmt.Print("=== Memory Analyzer ===\n\n")

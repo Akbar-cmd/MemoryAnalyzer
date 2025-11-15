@@ -1,17 +1,10 @@
 package process
 
 import (
+	"MemoryAnalyzer/memory"
 	"fmt"
 	"strings"
 )
-
-type SystemMemoryInfo struct {
-	TotalMemory     uint64
-	FreeMemory      uint64
-	AvailableMemory uint64
-	SwapTotal       uint64
-	SwapFree        uint64
-}
 
 func FormatMemorySize(bytes uint64) string {
 
@@ -38,7 +31,7 @@ func FormatMemorySize(bytes uint64) string {
 
 }
 
-func FormatSystemStats(stats SystemMemoryInfo) string {
+func FormatSystemStats(stats memory.SystemMemoryInfo) string {
 	// создаем builder для строки
 	var builder strings.Builder
 	// для хранения %

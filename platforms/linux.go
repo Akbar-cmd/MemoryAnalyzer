@@ -1,7 +1,7 @@
 package platforms
 
 import (
-	"MemoryAnalyzer/process"
+	"MemoryAnalyzer/memory"
 	"fmt"
 	"os"
 	"strconv"
@@ -84,8 +84,8 @@ func (l *LinuxMemoryReader) ReadProcessMemory(pid int) (uint64, error) {
 	return 0, fmt.Errorf("VmRSS not found in /proc/%d/status", pid)
 }
 
-func (l *LinuxMemoryReader) ReadSystemMemory() (process.SystemMemoryInfo, error) {
-	info := process.SystemMemoryInfo{}
+func (l *LinuxMemoryReader) ReadSystemMemory() (memory.SystemMemoryInfo, error) {
+	info := memory.SystemMemoryInfo{}
 
 	file, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
@@ -152,4 +152,17 @@ func (l *LinuxMemoryReader) ReadSystemMemory() (process.SystemMemoryInfo, error)
 	}
 
 	return info, nil
+}
+
+func (l *LinuxMemoryReader) GetProcessName(pid int) string {
+	filePath := fmt.Sprintf("/proc/%d/comm", pid)
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Sprintf("%d", pid) // Fallback на PID если ошибка
+	}
+	name := strings.TrimSpace(string(content))
+	if name == "" {
+		return fmt.Sprintf("%d", pid)
+	}
+	return name
 }

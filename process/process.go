@@ -1,21 +1,12 @@
 package process
 
 import (
+	"MemoryAnalyzer/memory"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
 )
-
-type ProcessInfo struct {
-	// Идентификатор процесса
-	PID int
-	// Имя процесса
-	Name string
-	// Использование памяти в байтах
-	MemoryUsage uint64
-}
 
 func getShortProcessName(fullName string) string {
 
@@ -55,7 +46,7 @@ func getShortProcessName(fullName string) string {
 
 }
 
-func FormatTable(processes []ProcessInfo) string {
+func FormatTable(processes []memory.ProcessInfo) string {
 	var builder strings.Builder
 	fmt.Fprintf(&builder, "%-8s %-15s %10s\n", "PID", "NAME", "MEMORY")
 	builder.WriteString("-----------------------------------\n")
@@ -69,17 +60,4 @@ func FormatTable(processes []ProcessInfo) string {
 	}
 
 	return builder.String()
-}
-
-func GetProcessName(pid int) string {
-	filePath := fmt.Sprintf("/proc/%d/comm", pid)
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Sprintf("%d", pid) // Fallback на PID если ошибка
-	}
-	name := strings.TrimSpace(string(content))
-	if name == "" {
-		return fmt.Sprintf("%d", pid)
-	}
-	return name
 }

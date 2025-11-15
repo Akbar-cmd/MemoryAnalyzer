@@ -1,7 +1,8 @@
 package platforms
 
+import "C"
 import (
-	"MemoryAnalyzer/process"
+	"MemoryAnalyzer/memory"
 	"fmt"
 	"log"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 )
 
 // Тестовая реализация для проверки интерфейса
+
 type DarwinMemoryReader struct{}
 
 func (d *DarwinMemoryReader) GetProcessList() ([]int, error) {
@@ -81,8 +83,8 @@ func (d *DarwinMemoryReader) ReadProcessMemory(pid int) (uint64, error) {
 	return rssByte, nil
 }
 
-func (d *DarwinMemoryReader) ReadSystemMemory() (process.SystemMemoryInfo, error) {
-	info := process.SystemMemoryInfo{}
+func (d *DarwinMemoryReader) ReadSystemMemory() (memory.SystemMemoryInfo, error) {
+	info := memory.SystemMemoryInfo{}
 
 	cmd := exec.Command("sysctl", "-n", "hw.memsize")
 	output, err := cmd.CombinedOutput()
@@ -180,6 +182,28 @@ func parseSwap(value string) uint64 {
 		value = strings.TrimSuffix(value, "K")
 	}
 
-	floatVal, _ := strconv.ParseFloat(value, 64)
+	floatVal, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return 0
+	}
 	return uint64(floatVal * float64(mltplr))
+}
+
+func (d *DarwinMemoryReader) GetProcessName(pid int) string {
+	// Используем ps для получения имени процесса по PID
+	// Флаг -o comm= возвращает только имя команды без заголовков
+	cmd := exec.Command("ps", "-p", fmt.Sprintf("%d", pid), "-o", "comm=")
+
+	output, err := cmd.Output()
+	if err != nil {
+		// Fallback на PID если ошибка
+		return fmt.Sprintf("%d", pid)
+	}
+
+	name := strings.TrimSpace(string(output))
+	if name == "" {
+		return fmt.Sprintf("%d", pid)
+	}
+
+	return name
 }
